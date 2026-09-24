@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>模块边界庭 · WebAssembly 段索引、类型栈与提案能力验证</title>
+<style>
+:root{--bg:#0f1420;--panel:#182034;--panel2:#101828;--line:#2a3550;--fg:#dbe4f5;--dim:#8fa0c0;--ok:#3fb96b;--bad:#e5534b;--warn:#d8a13a;--acc:#5aa2f0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.5 ui-monospace,Menlo,Consolas,monospace}
+header{display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:15px;margin:0;color:var(--acc)}
+.sp{flex:1}
+button{background:#243154;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;font:inherit}
+button:hover{border-color:var(--acc)}
+button.primary{background:var(--acc);color:#08101f;border-color:var(--acc)}
+button.danger{background:#4a1f1f}
+input,textarea,select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;width:100%}
+textarea{min-height:70px;resize:vertical}
+label{display:block;color:var(--dim);font-size:11px;margin:6px 0 2px}
+main{display:grid;grid-template-columns:320px 1fr 300px;gap:10px;padding:10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.panel h2{font-size:13px;margin:0 0 8px;color:var(--acc)}
+.panel h3{font-size:12px;margin:10px 0 4px;color:var(--dim)}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{border:1px solid var(--line);padding:2px 6px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--dim)}
+.tag{display:inline-block;padding:0 6px;border-radius:8px;font-size:11px;border:1px solid var(--line);margin:1px}
+.tag.ok{color:var(--ok);border-color:var(--ok)}
+.tag.bad{color:var(--bad);border-color:var(--bad)}
+.tag.warn{color:var(--warn);border-color:var(--warn)}
+.tag.stale{color:var(--warn);border-color:var(--warn);text-decoration:line-through}
+.tag.cur{color:var(--ok);border-color:var(--ok)}
+.muted{color:var(--dim)}
+.err{color:var(--bad)}
+.mono{word-break:break-all}
+.item{border:1px solid var(--line);border-radius:6px;padding:6px;margin-bottom:6px;cursor:pointer}
+.item:hover{border-color:var(--acc)}
+.item.sel{border-color:var(--acc);background:var(--panel2)}
+.ev{border-left:2px solid var(--line);padding:2px 8px;margin-bottom:6px;font-size:12px}
+.ev b{color:var(--acc)}
+.conflict{color:var(--bad);font-weight:bold}
+#viewbanner{background:#3a2c10;border:1px solid var(--warn);border-radius:6px;padding:6px 10px;margin-bottom:8px;display:none}
+svg text{font:10px ui-monospace,monospace;fill:var(--fg)}
+.row{display:flex;gap:6px}
+.row>*{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>模块边界庭</h1>
+  <span class="muted">WebAssembly 段索引 · 类型栈 · 提案能力验证</span>
+  <span class="sp"></span>
+  <button id="btnCase">载入离线案例包</button>
+  <button id="btnExport">导出档案</button>
+  <button id="btnImportBtn">导入档案</button>
+  <input type="file" id="fileImport" accept=".json" style="display:none">
+  <select id="viewSelect" style="width:220px"></select>
+</header>
+<main>
+  <div>
+    <div class="panel">
+      <h2>导入 Wasm binary</h2>
+      <label>标签</label><input id="inLabel" value="manual-import">
+      <label>wasm 字节（hex，可复制小样例）</label>
+      <textarea id="inHex" spellcheck="false" placeholder="0061736d01000000..."></textarea>
+      <label>启用的 proposals</label>
+      <div id="propBoxes"></div>
+      <label>host import 签名（JSON）</label>
+      <textarea id="inHost" spellcheck="false">[]</textarea>
+      <label>父版本（修订时选择）</label>
+      <select id="inParent"><option value="">（无 · 原始输入）</option></select>
+      <div style="margin-top:8px"><button class="primary" id="btnCommit">提交（不可覆盖）</button></div>
+      <div id="commitMsg"></div>
+    </div>
+    <div class="panel">
+      <h2>输入版本</h2>
+      <div id="inputList"></div>
+    </div>
+  </div>
+  <div>
+    <div id="viewbanner"></div>
+    <div id="detail"><div class="panel muted">选择左侧输入版本，或载入离线案例包。</div></div>
+  </div>
+  <div>
+    <div class="panel">
+      <h2>事件时间线</h2>
+      <div id="eventList"></div>
+    </div>
+  </div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+let STATE = null, VIEW_SEQ = null, SELECTED = null, SEL_FN = null;
+
+async function api(path, opts){ const r = await fetch(path, opts); if(!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rng = r => `[${r[0] ?? r.start}, ${r[1] ?? r.end})`;
+
+async function refresh(){
+  STATE = await api('/api/state' + (VIEW_SEQ ? `?at_seq=${VIEW_SEQ}` : ''));
+  renderViewSelect(); renderInputs(); renderEvents();
+  if (SELECTED) await showInput(SELECTED);
+}
+
+function renderViewSelect(){
+  const sel = $('#viewSelect');
+  sel.innerHTML = `<option value="">最新状态</option>` + STATE.events.slice().reverse().map(e =>
+    `<option value="${e.seq}" ${VIEW_SEQ===e.seq?'selected':''}>回到 ${e.id} · ${esc(e.kind)}</option>`).join('');
+  const b = $('#viewbanner');
+  if (VIEW_SEQ){ b.style.display='block'; b.textContent = `历史视图：正在查看 ${VIEW_SEQ} 时刻的依赖版本与可见结论（只读历史，不会被最新计算覆盖）`; }
+  else b.style.display='none';
+}
+
+function renderInputs(){
+  $('#inputList').innerHTML = STATE.inputs.map(i => `
+    <div class="item ${SELECTED===i.id?'sel':''}" onclick="selectInput('${i.id}')">
+      <b>${i.id}</b> · ${esc(i.label)}<br>
+      <span class="muted">${i.wasm_len}B · sha ${i.wasm_sha256.slice(0,12)}… · 父:${i.parent_id||'—'}</span><br>
+      ${i.proposals.map(p=>`<span class="tag">${esc(p)}</span>`).join('')}
+    </div>`).join('');
+  const opts = ['<option value="">（无 · 原始输入）</option>']
+    .concat(STATE.inputs.map(i=>`<option value="${i.id}">${i.id} ${esc(i.label)}</option>`));
+  $('#inParent').innerHTML = opts.join('');
+}
+
+function renderEvents(){
+  $('#eventList').innerHTML = STATE.events.slice().reverse().map(e => `
+    <div class="ev"><b>${e.id}</b> ${esc(e.kind)}<br>
+    <span class="muted">${esc(e.ts)}</span><br>
+    <span class="mono muted">${esc(JSON.stringify(e.payload)).slice(0,180)}</span></div>`).join('');
+}
+
+async function selectInput(id){ SELECTED = id; SEL_FN = null; await showInput(id); renderInputs(); }
+
+async function showInput(id){
+  const v = await api(`/api/inputs/${id}` + (VIEW_SEQ ? `?at_seq=${VIEW_SEQ}` : ''));
+  const val = v.validation;
+  const errs = [...val.errors, ...val.function_errors];
+  let h = '';
+  h += `<div class="panel"><h2>${v.input.id} · ${esc(v.input.label)}
+    ${val.ok?'<span class="tag ok">valid</span>':'<span class="tag bad">invalid</span>'}</h2>
+    <div class="muted">父版本 ${v.input.parent_id||'—'} · proposals: ${v.input.proposals.map(p=>`<span class="tag">${esc(p)}</span>`).join('')}</div>
+    <h3>section 地图（原字节范围 · id/size · LEB128 编码保留）</h3>${sectionMap(val)}
+    <h3>判定依据（机器可读事件）</h3>
+    ${val.judgments.length ? val.judgments.map(j=>`<div>· <b>${esc(j.rule)}</b>: ${esc(j.basis)} <span class="muted">${esc(JSON.stringify(j.evidence))}</span></div>`).join('') : '<span class="muted">无</span>'}
+    <h3>错误与最小失败字节范围</h3>${errTable(errs)}
+    <h3>自定义段保真</h3>${customTable(val)}
+    <h3>索引空间</h3>${indexTables(val)}
+    <h3>函数 · 控制栈与类型转移</h3>${fnTabs(val)}
+    <h3>派生结果与裁定</h3>${resultPanel(v)}
+  </div>`;
+  $('#detail').innerHTML = h;
+}
+
+const SEC_COLORS = {0:'#6b5b95',1:'#2f6fb2',2:'#2f9e8f',3:'#b2802f',4:'#7a7a7a',5:'#8f5fb0',6:'#4f9e4f',7:'#b25f5f',8:'#777',9:'#5f8fb0',10:'#c0504d',11:'#4f6f9e',12:'#9e4f8f'};
+function sectionMap(val){
+  const secs = val.sections;
+  if (!secs.length) return '<span class="muted">无 section（头部错误）</span>';
+  const total = Math.max(...secs.map(s=>s.range[1]));
+  const W = 720, H = 46;
+  let rects = secs.map(s=>{
+    const x = s.range[0]/total*W, w = Math.max(2,(s.range[1]-s.range[0])/total*W);
+    return `<g><rect x="${x}" y="4" width="${w}" height="24" fill="${SEC_COLORS[s.id]||'#555'}" stroke="#0f1420">
+      <title>#${s.id} ${esc(s.name)} range=${s.range} size=${s.size} sizeLEB=${s.size_leb.hex}${s.size_leb.noncanonical?' (非规范)':''}</title></rect>
+      <text x="${x+2}" y="18">${s.id}</text><text x="${x+2}" y="42" fill="#8fa0c0">${s.range[0]}</text></g>`;
+  }).join('');
+  const errMarks = [...val.errors, ...val.function_errors].map(e=>{
+    const x = e.range.start/total*W;
+    return `<rect x="${x-1}" y="28" width="3" height="12" fill="#e5534b"><title>${esc(e.code)} @${e.range.start}-${e.range.end}</title></rect>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#101828;border-radius:6px">${rects}${errMarks}</svg>
+  <div class="muted">红色刻度 = 最小失败字节范围；悬停查看 size 的 LEB128 编码</div>`;
+}
+
+function errTable(errs){
+  if (!errs.length) return '<span class="tag ok">无错误</span>';
+  return `<table><tr><th>code</th><th>字节范围</th><th>来源</th><th>说明</th></tr>` +
+    errs.map(e=>`<tr><td class="err">${esc(e.code)}</td><td class="mono">[${e.range.start}, ${e.range.end})</td>
+    <td class="mono muted">${esc(JSON.stringify(e.origin))}</td><td>${esc(e.message)}</td></tr>`).join('') + '</table>';
+}
+
+function customTable(val){
+  if (!val.custom_sections.length) return '<span class="muted">无自定义段</span>';
+  return `<table><tr><th>name</th><th>utf8</th><th>范围</th><th>payload sha256</th><th>长度</th></tr>` +
+    val.custom_sections.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.name_utf8}</td>
+    <td class="mono">[${c.range[0]}, ${c.range[1]})</td><td class="mono">${c.payload_sha256.slice(0,16)}…</td>
+    <td>${c.payload_len}</td></tr>`).join('') + '</table>';
+}
+
+function indexTables(val){
+  const sp = val.index_spaces;
+  const t1 = `<table><tr><th>type#</th><th>params</th><th>results</th></tr>` +
+    sp.types.map(t=>`<tr><td>${t.index}</td><td>${t.params.join(',')}</td><td>${t.results.join(',')}</td></tr>`).join('') + '</table>';
+  const t2 = `<table><tr><th>func#</th><th>来源</th><th>type#</th></tr>` +
+    sp.funcs.map(f=>`<tr><td>${f.index}</td><td>${f.source}</td><td>${f.type_index}</td></tr>`).join('') + '</table>';
+  const t3 = `<table><tr><th>global#</th><th>类型</th><th>可变</th><th>来源</th></tr>` +
+    sp.globals.map(g=>`<tr><td>${g.index}</td><td>${g.valtype}</td><td>${g.mutable}</td><td>${g.source}</td></tr>`).join('') + '</table>';
+  return `<div class="row"><div><h3>types</h3>${t1}</div><div><h3>funcs</h3>${t2}</div><div><h3>globals</h3>${t3}</div></div>`;
+}
+
+function fnTabs(val){
+  if (!val.functions.length) return '<span class="muted">无函数体</span>';
+  const sel = SEL_FN ?? val.functions[0].index;
+  const fn = val.functions.find(f=>f.index===sel) || val.functions[0];
+  const tabs = val.functions.map(f=>
+    `<button class="${f.index===fn.index?'primary':''}" onclick="selFn(${f.index})">fn${f.index}${f.errors.length?' ✗':''}${f.used_polymorphic_stack?' ⟂':''}</button>`).join(' ');
+  const ctrl = `<table><tr><th>事件</th><th>帧</th><th>offset</th><th>类型</th></tr>` +
+    fn.control_trace.map(c=>`<tr><td>${c.event}</td><td>${c.frame||''}</td><td>${c.offset}</td>
+    <td class="mono">${esc(JSON.stringify(c.end_types ?? c.start_types ?? ''))}</td></tr>`).join('') + '</table>';
+  const trans = `<table><tr><th>offset</th><th>opcode</th><th>pops</th><th>pushes</th><th>stack</th></tr>` +
+    fn.type_transitions.map(t=>`<tr><td>${t.offset}</td><td>${esc(t.name)}</td>
+    <td>${t.pops.join(',')}</td><td>${t.pushes.join(',')}</td><td class="mono">[${t.stack.join(', ')}]</td></tr>`).join('') + '</table>';
+  const ferr = fn.errors.length ? `<div class="err">${fn.errors.map(e=>esc(e.code)+' @'+e.range.start).join('; ')}</div>` : '';
+  return `${tabs}${ferr}<div class="row"><div><h3>控制栈轨迹</h3>${ctrl}</div><div><h3>类型转移</h3>${trans}</div></div>`;
+}
+
+function resultPanel(v){
+  const decMap = v.decisions || {};
+  return v.results.map(r=>{
+    const res = r.result;
+    if (!res) return `<div class="item"><b>${esc(r.subject)}</b> <span class="tag warn">无持久化结果</span></div>`;
+    const decs = (decMap[res.id]||[]);
+    const conflict = STATE.conflicts.includes(res.id);
+    const p = res.payload;
+    return `<div class="item">
+      <b>${esc(r.subject)}</b> → <span class="mono">${res.id}</span>
+      <span class="tag ${res.status==='current'?'cur':'stale'}">${res.status}</span>
+      ${p.ok?'<span class="tag ok">ok</span>':'<span class="tag bad">errors</span>'}
+      ${conflict?'<span class="conflict">⚠ 冲突裁定</span>':''}<br>
+      <span class="muted">algo ${res.algo} · fp ${res.fingerprint} · 来源输入 ${res.input_id}${r.carried_from!==v.input.id?'（沿用）':''} · 创建于 ev-${String(res.created_seq).padStart(4,'0')}</span>
+      ${res.status==='stale'?'<br><span class="tag stale">已过期：仅可查看，不代表当前结论</span>':''}
+      <div style="margin-top:4px">
+        <button onclick="decide('${res.id}','accept')">接受</button>
+        <button onclick="decide('${res.id}','reject')">否定</button>
+        <button onclick="decide('${res.id}','adjust')">参数调整</button>
+      </div>
+      ${decs.map(d=>`<div class="ev"><b>${d.id}</b> ${esc(d.reviewer)}: <span class="tag ${d.verdict==='accept'?'ok':d.verdict==='reject'?'bad':'warn'}">${d.verdict}</span>
+        ${esc(d.note)} ${d.active?`<button onclick="undo('${d.id}')">撤销</button>`:'<span class="muted">（已撤销）</span>'}</div>`).join('')}
+    </div>`;
+  }).join('');
+}
+function selFn(i){ SEL_FN = i; if (SELECTED) showInput(SELECTED); }
+
+async function decide(rid, verdict){
+  const reviewer = prompt('审阅者', 'reviewer'); if (reviewer===null) return;
+  const note = prompt('裁定说明', '') ?? '';
+  await api(`/api/results/${rid}/decisions`, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({verdict, note, reviewer})});
+  await refresh();
+}
+async function undo(did){ await api(`/api/decisions/${did}/undo`, {method:'POST'}); await refresh(); }
+
+const PROPS = ['multi-value','bulk-memory','reference-types','simd','tail-call'];
+$('#propBoxes').innerHTML = PROPS.map(p=>
+  `<label style="display:inline-block;margin-right:10px"><input type="checkbox" style="width:auto" value="${p}" ${['multi-value','bulk-memory','reference-types'].includes(p)?'checked':''}> ${p}</label>`).join('');
+
+$('#btnCommit').onclick = async () => {
+  const body = {label: $('#inLabel').value, wasm_hex: $('#inHex').value,
+    proposals: [...document.querySelectorAll('#propBoxes input:checked')].map(c=>c.value),
+    host_imports: JSON.parse($('#inHost').value || '[]'),
+    parent_id: $('#inParent').value || null};
+  try {
+    const r = await api('/api/inputs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    $('#commitMsg').innerHTML = `<span class="tag ok">已提交 ${r.input_id}</span>`;
+    SELECTED = r.input_id; await refresh();
+  } catch(e){ $('#commitMsg').innerHTML = `<span class="tag bad">${esc(e.message)}</span>`; }
+};
+
+$('#btnCase').onclick = async () => { await api('/api/casepack/load', {method:'POST'}); await refresh(); };
+$('#btnExport').onclick = async () => {
+  const data = await api('/api/export');
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'boundary-court-archive.json'; a.click();
+};
+$('#btnImportBtn').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = async ev => {
+  const text = await ev.target.files[0].text();
+  await api('/api/import', {method:'POST', headers:{'Content-Type':'application/json'}, body: text});
+  await refresh();
+};
+$('#viewSelect').onchange = ev => { VIEW_SEQ = ev.target.value ? parseInt(ev.target.value) : null; refresh(); };
+
+refresh();
+</script>
+</body>
+</html>

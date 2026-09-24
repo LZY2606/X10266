@@ -1,0 +1,303 @@
+{
+  "baseline": {
+    "host": [
+      {
+        "kind": "func",
+        "module": "env",
+        "name": "log",
+        "params": [
+          "i32"
+        ],
+        "results": []
+      }
+    ],
+    "proposals": [
+      "multi-value",
+      "bulk-memory",
+      "reference-types"
+    ],
+    "wasm_hex": "0061736d01000000010d036000027f7f60017f00600000020b0103656e76036c6f6700010303020002071102047061697200010668656c70657200020a0c020600410741090b0300010b001e0d626f756e64617279436f757274000102030405060708090a0b0c0d0e0f"
+  },
+  "format": "boundary-court/1",
+  "name": "模块边界庭：WebAssembly 段索引、类型栈与提案能力验证",
+  "narrative": [
+    "v1 导入基线模块：原字节范围、section id/size、LEB128 编码、索引来源、功能开关、import 契约、自定义段均保留",
+    "v2 局部源数据改动：仅修改函数 pair 的一个立即数（7→8），只有依赖它的派生结果过期",
+    "v3 参数修订：关闭 multi-value proposal，能力缺失判定出现",
+    "两位审阅者对同一结果作出互相冲突的裁定，随后其中一人撤销",
+    "七个边界场景分支：section 重复与乱序、非规范 LEB128、unreachable 栈、多值返回、proposal 关闭、import 不匹配、自定义段保真"
+  ],
+  "scenarios": [
+    {
+      "expect": {
+        "errors": [
+          "section_duplicate"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "section-duplicate",
+      "label": "section 重复",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d01000000010d036000027f7f60017f00600000020b0103656e76036c6f670001010d036000027f7f60017f0060000003030200020a0c020600410741090b0300010b"
+    },
+    {
+      "expect": {
+        "errors": [
+          "section_out_of_order"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "section-out-of-order",
+      "label": "section 乱序",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d01000000010d036000027f7f60017f00600000020b0103656e76036c6f6700010a0c020600410741090b0300010b0303020002"
+    },
+    {
+      "expect": {
+        "errors": [
+          "noncanonical_leb128"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "noncanonical-leb128",
+      "label": "非规范 LEB128",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d01000000018d8080808000036000027f7f60017f00600000"
+    },
+    {
+      "expect": {
+        "absent": [
+          "noncanonical_leb128"
+        ],
+        "errors": [
+          "value_out_of_range"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "leb128-range-vs-form",
+      "label": "LEB128 数值越界（与形式分开）",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d010000000104016000000306018080808010"
+    },
+    {
+      "expect": {
+        "errors": [
+          "stack_underflow"
+        ],
+        "judgments": [
+          "polymorphic_stack_scope"
+        ],
+        "polymorphic_functions": [
+          0
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "unreachable-stack",
+      "label": "unreachable 多态栈",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d0100000001040160000003030200000a0b020500006a1a0b03006a0b"
+    },
+    {
+      "expect": {
+        "errors": [
+          "capability_missing"
+        ],
+        "judgments": [
+          "capability_vs_unknown"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "multi-value-off",
+      "label": "多值返回 proposal 关闭",
+      "proposals": [
+        "bulk-memory"
+      ],
+      "wasm_hex": "0061736d010000000106016000027f7f030201000a0b0109000200410141020b0b"
+    },
+    {
+      "expect": {
+        "ok": true
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "multi-value-on",
+      "label": "多值返回 proposal 开启",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d010000000106016000027f7f030201000a0b0109000200410141020b0b"
+    },
+    {
+      "expect": {
+        "errors": [
+          "capability_missing",
+          "unknown_opcode"
+        ],
+        "judgments": [
+          "capability_vs_unknown"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "proposal-off-opcode",
+      "label": "proposal 关闭的 opcode 报能力缺失",
+      "proposals": [
+        "multi-value"
+      ],
+      "wasm_hex": "0061736d01000000010401600000030302000005030100010a12020c00410041004100fc0a00000b0300ff0b"
+    },
+    {
+      "expect": {
+        "errors": [
+          "import_signature_mismatch",
+          "import_not_provided"
+        ]
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i64"
+          ],
+          "results": []
+        }
+      ],
+      "key": "import-mismatch",
+      "label": "import 契约不匹配",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d0100000001080260017f0060000002170203656e76036c6f67000003656e760567686f73740001"
+    },
+    {
+      "expect": {
+        "custom_sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+        "ok": true
+      },
+      "host": [
+        {
+          "kind": "func",
+          "module": "env",
+          "name": "log",
+          "params": [
+            "i32"
+          ],
+          "results": []
+        }
+      ],
+      "key": "custom-fidelity",
+      "label": "自定义段保真",
+      "proposals": [
+        "multi-value",
+        "bulk-memory",
+        "reference-types"
+      ],
+      "wasm_hex": "0061736d0100000001040160000000890208666964656c697479000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+    }
+  ],
+  "v2_wasm_hex": "0061736d01000000010d036000027f7f60017f00600000020b0103656e76036c6f6700010303020002071102047061697200010668656c70657200020a0c020600410841090b0300010b001e0d626f756e64617279436f757274000102030405060708090a0b0c0d0e0f"
+}
