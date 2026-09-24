@@ -1,0 +1,55 @@
+:root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f6f7f9; color:#18202a; }
+* { box-sizing: border-box; }
+body { margin:0; }
+header { display:flex; justify-content:space-between; gap:24px; padding:24px 28px; background:#142033; color:white; }
+h1 { margin:0 0 6px; font-size:22px; }
+h2 { margin:0 0 14px; font-size:17px; }
+.sub { margin:0; color:#cbd5e1; }
+main { padding:20px 28px 48px; max-width:1500px; margin:0 auto; }
+.panel { background:white; border:1px solid #dde3ea; border-radius:12px; padding:18px; margin:16px 0; box-shadow:0 1px 2px #0001; }
+.grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.two-col { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+label { display:block; font-size:12px; color:#526070; margin:10px 0; }
+input, textarea, select { width:100%; margin-top:5px; border:1px solid #c8d0da; border-radius:8px; padding:8px 10px; font:inherit; background:white; color:inherit; }
+textarea { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+button { border:1px solid #315b89; background:#274f78; color:white; border-radius:8px; padding:8px 12px; cursor:pointer; }
+button:hover { filter:brightness(1.08); }
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.actions.inline { align-items:end; }
+.actions.inline > * { flex:1; }
+.primary { background:#17724a; border-color:#17724a; }
+.feature-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin:10px 0; }
+.feature { border:1px solid #d6dde6; border-radius:8px; padding:8px; }
+.events { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; }
+.event { min-width:190px; border:1px solid #cbd5e1; border-radius:10px; padding:8px; background:#f8fafc; cursor:pointer; }
+.event.current { outline:3px solid #7bb0f2; }
+.event .type { font-weight:700; color:#234b74; }
+.event time { display:block; color:#64748b; font-size:11px; }
+.event .label { font-size:12px; margin-top:4px; }
+.event .sid { font-family:ui-monospace,monospace; font-size:10px; overflow-wrap:anywhere; color:#64748b; }
+.banner { margin-top:10px; padding:10px; border-radius:8px; background:#fff7d6; border:1px solid #e5cf75; }
+.hidden { display:none; }
+table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+th,td { border-bottom:1px solid #e5eaf0; padding:7px 8px; vertical-align:top; text-align:left; }
+th { background:#f1f5f9; position:sticky; top:0; }
+.mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; overflow-wrap:anywhere; }
+.tag { display:inline-block; padding:2px 6px; border-radius:999px; font-size:11px; margin:2px; background:#e8f0fe; color:#1e4b78; }
+.tag.off { background:#f1f5f9; color:#64748b; }
+.tag.error { background:#fde8e8; color:#912020; }
+.tag.accept { background:#e7f8ef; color:#17663c; }
+.tag.reject { background:#fdecec; color:#8a1f1f; }
+.tag.unknown { background:#fff2cc; color:#7a5200; }
+.finding { border:1px solid #d8e0e8; border-radius:10px; padding:12px; margin:10px 0; }
+.finding.error { border-color:#e2a3a3; background:#fffafa; }
+.finding.accepted { border-color:#7fc59b; }
+.finding.rejected { border-color:#d49a9a; opacity:.82; }
+.basis { border-left:4px solid #6d96c2; padding:8px 10px; background:#f7fafd; margin:8px 0; }
+dialog { width:min(900px, 92vw); border:0; border-radius:14px; padding:20px; box-shadow:0 20px 70px #0006; }
+dialog::backdrop { background:#0008; }
+.bar-row { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:12px; }
+.bar-track { position:relative; height:22px; background:#edf1f5; flex:1; border-radius:5px; }
+.bar { position:absolute; top:0; height:100%; border-radius:4px; background:#4f8bc6; border:1px solid #2b6196; }
+.bar.custom { background:#8c77bd; border-color:#604b91; }
+.bar.bad { background:#d46a6a; border-color:#983737; }
+.muted { color:#64748b; font-size:12px; }
+@media (max-width: 900px) { .grid,.two-col,.feature-grid { grid-template-columns:1fr; } header { flex-direction:column; } }

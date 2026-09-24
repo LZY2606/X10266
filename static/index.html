@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>模块边界庭</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>模块边界庭：WebAssembly 段索引、类型栈与提案能力验证</h1>
+      <p id="project-title" class="sub">导入 binary、启用 proposal、核对 host contract；历史事件不会被新计算覆盖。</p>
+    </div>
+    <div class="actions">
+      <button id="load-case">载入离线案例包</button>
+      <button id="export">导出档案</button>
+      <button id="wipe-import">删除数据库并导入</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel import-panel">
+      <h2>1. 运行时团队导入</h2>
+      <div class="grid">
+        <label>项目 ID <input id="project-id" value="module-boundary-court"></label>
+        <label>项目标题 <input id="project-title-input" value="模块边界庭案例"></label>
+      </div>
+      <label>Wasm base64（可粘贴小型样例）<textarea id="wasm-base64" rows="3" placeholder="AA..."></textarea></label>
+      <div class="grid">
+        <label>模块标签 <input id="module-label" value="runtime import"></label>
+        <label>虚拟时间（可选）<input id="module-time" placeholder="2026-09-25T00:00:00Z"></label>
+      </div>
+      <div class="feature-grid" id="feature-grid"></div>
+      <label>Host import 契约 JSON<textarea id="host-imports" rows="4">[{"module":"env","name":"increment","params":[],"results":["i32"]}]</textarea></label>
+      <div class="actions">
+        <button id="create-project">创建项目</button>
+        <button id="submit-module" class="primary">提交不可变 binary</button>
+        <button id="submit-config">提交能力/import 参数</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>2. 事件与版本时间线</h2>
+      <div id="events" class="events"></div>
+      <div id="view-banner" class="banner hidden"></div>
+    </section>
+
+    <section class="panel">
+      <h2>3. Section 地图（原字节坐标）</h2>
+      <div id="section-map"></div>
+      <div id="section-table"></div>
+    </section>
+
+    <div class="two-col">
+      <section class="panel">
+        <h2>4. 索引表与 import 契约</h2>
+        <div id="index-table"></div>
+        <div id="import-table"></div>
+      </section>
+      <section class="panel">
+        <h2>5. 功能开关与判定依据</h2>
+        <div id="features"></div>
+        <div id="basis"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>6. 控制栈与类型转移</h2>
+      <div id="control-stack"></div>
+    </section>
+
+    <section class="panel">
+      <h2>7. 候选、拒绝原因、未知状态与人工裁定</h2>
+      <div class="actions inline">
+        <input id="decision-target" placeholder="finding stable_id">
+        <select id="decision-choice"><option value="true">接受</option><option value="false">否定</option></select>
+        <input id="decision-rationale" placeholder="裁定理由">
+        <button id="submit-decision">写入新决定</button>
+      </div>
+      <div id="findings"></div>
+    </section>
+
+    <section class="panel">
+      <h2>8. 自定义段保真与可追溯单元格</h2>
+      <div id="custom-sections"></div>
+      <details><summary>全部带稳定身份的显示值</summary><div id="cells"></div></details>
+    </section>
+  </main>
+
+  <dialog id="import-dialog">
+    <h2>导出档案 JSON</h2>
+    <p>先点“复制”，关闭后点“删除数据库并导入”，粘贴同一份 JSON。</p>
+    <textarea id="archive-text" rows="12"></textarea>
+    <div class="actions"><button id="copy-archive">复制</button><button id="dialog-import">使用下方内容导入</button><button id="close-dialog">关闭</button></div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
