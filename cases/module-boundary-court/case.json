@@ -1,0 +1,234 @@
+{
+  "case_id": "module-boundary-court",
+  "title": "模块边界庭：WebAssembly 段索引、类型栈与提案能力验证",
+  "seed": 20260925,
+  "virtual_time_base": "2026-09-25T00:00:00Z",
+  "steps": [
+    {
+      "kind": "import",
+      "label": "r1 initial baseline with retained custom section",
+      "binary_hex": "0061736d010000000105016000017f020b0103656e76036c6f670000030201000a0601040041010b00330a636f7572742e6e6f74657b22726574656e74696f6e223a22637573746f6d2d73656374696f6e2d707265736572766564227d",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": false,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "parameter_adjustment",
+      "label": "r2 enable reference_types proposal",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": true,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "source_revision",
+      "label": "r3 noncanonical function local-count LEB128",
+      "binary_hex": "0061736d01000000010401600000020b0103656e76036c6f670000030201000a0701058000d0700b00330a636f7572742e6e6f74657b22726574656e74696f6e223a22637573746f6d2d73656374696f6e2d707265736572766564227d",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": true,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "parameter_adjustment",
+      "label": "r4 close reference_types to distinguish capability from unknown byte",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": false,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "source_revision",
+      "label": "r5 unreachable region with polymorphic i32.add",
+      "binary_hex": "0061736d010000000105016000017f020b0103656e76036c6f670000030201000a06010400006a0b00330a636f7572742e6e6f74657b22726574656e74696f6e223a22637573746f6d2d73656374696f6e2d707265736572766564227d",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": false,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "source_revision",
+      "label": "r6 duplicate and out-of-order type section",
+      "binary_hex": "0061736d010000000105016000017f020b0103656e76036c6f6700000105016000017f030201000a0601040041010b00330a636f7572742e6e6f74657b22726574656e74696f6e223a22637573746f6d2d73656374696f6e2d707265736572766564227d",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": false,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "source_revision",
+      "label": "r7 disabled multi-value function result",
+      "binary_hex": "0061736d010000000106016000027f7f020b0103656e76036c6f670000030201000a08010600410141020b00330a636f7572742e6e6f74657b22726574656e74696f6e223a22637573746f6d2d73656374696f6e2d707265736572766564227d",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": false,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 0
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    },
+    {
+      "kind": "parameter_adjustment",
+      "label": "r8 host import signature mismatch",
+      "params": {
+        "proposals": {
+          "multi_value": false,
+          "reference_types": false,
+          "sign_extension": false,
+          "bulk_memory": false
+        },
+        "host_imports": {
+          "imports": [
+            {
+              "module": "env",
+              "name": "log",
+              "desc": {
+                "kind": "function",
+                "type_index": 1
+              }
+            }
+          ]
+        }
+      },
+      "actor": "runtime-team"
+    }
+  ],
+  "conflict": {
+    "finding_status": "candidate",
+    "decision_a": "accepted",
+    "decision_b": "rejected",
+    "rationale_a": "accept bounded polymorphic candidate for exploratory review",
+    "rationale_b": "reject after host team says exploratory repair cannot ship"
+  },
+  "expected_codes": [
+    "duplicate_section",
+    "section_out_of_order",
+    "noncanonical_leb",
+    "unreachable_stack",
+    "capability_missing",
+    "import_mismatch"
+  ],
+  "coordinate_basis": {
+    "byte_offset": "zero_based_inclusive_start_exclusive_end",
+    "leb128": "unsigned_leb128_bytes",
+    "stack": "function_frame_bottom_to_top",
+    "custom_sections": "raw_payload_retained"
+  }
+}
