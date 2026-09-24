@@ -1,0 +1,4 @@
+"""WebAssembly 模块边界庭：段索引、类型栈与提案能力验证。"""
+from .model import ALGO_VERSION, STATUSES, PROPOSAL_CATALOG, DEFAULT_PROPOSALS
+
+__all__ = ["ALGO_VERSION", "STATUSES", "PROPOSAL_CATALOG", "DEFAULT_PROPOSALS"]
