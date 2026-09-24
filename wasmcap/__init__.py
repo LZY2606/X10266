@@ -1,0 +1,2 @@
+ALGORITHM_VERSION = "wasmcap-2026-09-25"
+
