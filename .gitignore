@@ -34,3 +34,7 @@ coverage/
 .vite/
 .turbo/
 *.tsbuildinfo
+
+# 本地运行时数据库
+*.db
+wasmcourt.db
